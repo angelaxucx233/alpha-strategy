@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Threshing Hedge — A Market Neutral Story</title>
+<style>
+/* ===== RESET & BASE ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: Georgia, 'Times New Roman', serif;
+  color: #2D3748;
+  background: #FAFBFC;
+  overflow-x: hidden;
+}
+
+/* ===== PROGRESS BAR ===== */
+#progress {
+  position: fixed; top: 0; left: 0; height: 3px; width: 0%;
+  background: linear-gradient(90deg, #0A7E8C, #C9A84C);
+  z-index: 9999; transition: width 0.1s linear;
+}
+
+/* ===== CHAPTER SYSTEM ===== */
+.chapter {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 80px 40px;
+  position: relative;
+}
+.chapter.fade-in {
+  opacity: 0; transform: translateY(50px);
+  transition: opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.chapter.fade-in.visible {
+  opacity: 1; transform: translateY(0);
+}
+
+/* ===== DARK SECTIONS ===== */
+.dark {
+  background: #1B2A4A;
+  color: #E8ECF1;
+  position: relative; overflow: hidden;
+}
+.dark::before {
+  content: '';
+  position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(ellipse at 30% 40%, rgba(10,126,140,0.15) 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 60%, rgba(201,168,76,0.1) 0%, transparent 50%);
+  animation: meshDrift 20s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes meshDrift {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(-3%, 2%) rotate(2deg); }
+}
+
+/* ===== TYPOGRAPHY ===== */
+.narrative {
+  max-width: 720px; margin: 0 auto;
+  font-size: 20px; line-height: 1.78;
+  color: #2D3748;
+}
+.dark .narrative { color: #D1D9E6; }
+.narrative p { margin-bottom: 1.6em; }
+.narrative p:last-child { margin-bottom: 0; }
+
+h1.hero-title {
+  font-family: Georgia, serif;
+  font-size: clamp(48px, 6vw, 80px);
+  letter-spacing: 6px;
+  color: #E8ECF1;
+  margin-bottom: 12px;
+}
+h2.chapter-title {
+  font-family: Georgia, serif;
+  font-size: clamp(28px, 3.5vw, 42px);
+  color: #1B2A4A;
+  margin-bottom: 40px;
+  text-align: center;
+}
+.dark h2.chapter-title { color: #E8ECF1; }
+
+.subtitle {
+  font-family: Georgia, serif;
+  font-size: 22px; font-style: italic;
+  color: #C9A84C; margin-bottom: 8px;
+}
+.mandate {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 16px; letter-spacing: 3px; text-transform: uppercase;
+  color: #7A8BA8; margin-top: 16px;
+}
+
+blockquote {
+  border-left: 3px solid #0A7E8C;
+  padding-left: 24px; margin: 32px 0;
+  font-style: italic; color: #4A5568;
+}
+.dark blockquote { color: #A0AFCA; border-left-color: #C9A84C; }
+
+.pull-quote {
+  font-family: Georgia, serif;
+  font-size: 26px; font-style: italic;
+  color: #0A7E8C; text-align: center;
+  max-width: 640px; margin: 48px auto;
+  line-height: 1.6;
+}
+.dark .pull-quote { color: #C9A84C; }
+
+/* ===== KPI COUNTERS ===== */
+.kpi-row {
+  display: flex; flex-wrap: wrap;
+  justify-content: center; gap: 40px;
+  margin: 48px 0; max-width: 960px;
+}
+.kpi {
+  text-align: center; min-width: 140px;
+}
+.kpi-value {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: clamp(42px, 5vw, 64px);
+  font-weight: 700;
+  color: #0A7E8C;
+  line-height: 1;
+}
+.dark .kpi-value { color: #4DC9D4; }
+.kpi-value.gold { color: #C9A84C; }
+.kpi-label {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 14px; text-transform: uppercase;
+  letter-spacing: 1.5px; color: #718096;
+  margin-top: 8px;
+}
+.dark .kpi-label { color: #8CA0BE; }
+
+/* ===== GAUGE ===== */
+.gauge-container {
+  display: flex; flex-direction: column; align-items: center;
+  margin: 40px 0;
+}
+.gauge {
+  width: 220px; height: 120px; position: relative;
+  overflow: hidden;
+}
+.gauge-bg {
+  width: 220px; height: 110px;
+  border-radius: 110px 110px 0 0;
+  background: conic-gradient(from 180deg at 50% 100%, #e53e3e 0deg, #ecc94b 90deg, #48bb78 180deg);
+  position: relative;
+}
+.gauge-mask {
+  width: 160px; height: 80px;
+  border-radius: 80px 80px 0 0;
+  background: #FAFBFC;
+  position: absolute; bottom: 0; left: 50%;
+  transform: translateX(-50%);
+}
+.gauge-needle {
+  width: 3px; height: 90px;
+  background: #1B2A4A;
+  position: absolute; bottom: 0; left: 50%;
+  transform-origin: bottom center;
+  transform: translateX(-50%) rotate(-82deg);
+  transition: transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  border-radius: 2px;
+}
+.gauge-needle.animated { transform: translateX(-50%) rotate(-82deg); }
+.gauge-dot {
+  width: 12px; height: 12px; border-radius: 50%;
+  background: #1B2A4A;
+  position: absolute; bottom: -6px; left: 50%;
+  transform: translateX(-50%);
+}
+.gauge-labels {
+  display: flex; justify-content: space-between; width: 220px;
+  font-family: Calibri, Arial, sans-serif; font-size: 12px; color: #718096;
+  margin-top: 4px;
+}
+.gauge-value {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 36px; font-weight: 700;
+  color: #48bb78; margin-top: 8px;
+}
+
+/* ===== PAIR DIAGRAM ===== */
+.pair-diagram {
+  max-width: 640px; margin: 40px auto;
+  display: flex; flex-direction: column; gap: 20px;
+}
+.pair-visual {
+  display: flex; align-items: center; justify-content: center; gap: 32px;
+  padding: 32px; border-radius: 12px;
+  background: linear-gradient(135deg, #EDF2F7, #E2E8F0);
+}
+.pair-box {
+  padding: 16px 24px; border-radius: 8px;
+  font-family: Calibri, Arial, sans-serif;
+  font-weight: 700; font-size: 18px; text-align: center;
+}
+.pair-long { background: #C6F6D5; color: #22543D; }
+.pair-short { background: #FED7D7; color: #742A2A; }
+.pair-arrow {
+  font-size: 28px; color: #718096;
+}
+.pair-scenarios {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.scenario {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 16px; border-radius: 8px;
+  font-family: Calibri, Arial, sans-serif; font-size: 15px;
+  background: #F7FAFC;
+}
+.scenario-icon { font-size: 20px; flex-shrink: 0; }
+.scenario:nth-child(3) { background: #F0FFF4; font-weight: 600; }
+
+/* ===== CLUSTER CARDS ===== */
+.clusters {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 24px; max-width: 960px; margin: 40px auto;
+}
+.cluster-card {
+  background: #fff; border-radius: 12px;
+  padding: 28px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  border-left: 4px solid #0A7E8C;
+  opacity: 0; transform: translateY(30px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.cluster-card.visible { opacity: 1; transform: translateY(0); }
+.cluster-card:nth-child(2) { transition-delay: 0.1s; }
+.cluster-card:nth-child(3) { transition-delay: 0.2s; }
+.cluster-card:nth-child(4) { transition-delay: 0.3s; border-left-color: #C9A84C; }
+.cluster-card:nth-child(5) { transition-delay: 0.4s; border-left-color: #C9A84C; }
+.cluster-card:nth-child(6) { transition-delay: 0.5s; }
+.cluster-icon { font-size: 28px; margin-bottom: 8px; }
+.cluster-name {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 16px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: 1px; color: #1B2A4A; margin-bottom: 12px;
+}
+.cluster-tickers {
+  font-family: 'Courier New', monospace; font-size: 13px;
+  color: #718096; margin-bottom: 12px; line-height: 1.6;
+}
+.cluster-thesis {
+  font-size: 15px; color: #4A5568; font-style: italic;
+}
+
+/* ===== GUARDRAILS ===== */
+.guardrails {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px; max-width: 860px; margin: 40px auto;
+}
+.guardrail {
+  text-align: center; padding: 28px 20px;
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+}
+.guardrail-value {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 32px; font-weight: 700; color: #0A7E8C;
+}
+.guardrail-label {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 13px; text-transform: uppercase;
+  letter-spacing: 1px; color: #718096; margin-top: 8px;
+}
+
+/* ===== CHART IMAGES ===== */
+.chart-container {
+  max-width: 900px; width: 100%; margin: 40px auto;
+  border-radius: 12px; overflow: hidden;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+.chart-container img {
+  width: 100%; height: auto; display: block;
+}
+.chart-caption {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 13px; color: #A0AEC0; text-align: center;
+  margin-top: 12px; font-style: italic;
+}
+
+/* ===== IMPROVEMENTS LIST ===== */
+.improvements {
+  max-width: 720px; margin: 32px auto;
+  list-style: none; counter-reset: imp;
+}
+.improvements li {
+  counter-increment: imp;
+  padding: 16px 0 16px 48px; position: relative;
+  font-size: 19px; line-height: 1.6;
+  border-bottom: 1px solid #E2E8F0;
+}
+.improvements li::before {
+  content: counter(imp);
+  position: absolute; left: 0; top: 16px;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: #0A7E8C; color: #fff;
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 16px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+}
+.improvements li:last-child { border-bottom: none; }
+
+/* ===== SCROLL ARROW ===== */
+.scroll-hint {
+  position: absolute; bottom: 40px;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 8px; animation: bounce 2s infinite;
+}
+.scroll-hint span {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 12px; letter-spacing: 2px;
+  text-transform: uppercase; color: #7A8BA8;
+}
+.scroll-arrow {
+  width: 24px; height: 24px;
+  border-right: 2px solid #7A8BA8;
+  border-bottom: 2px solid #7A8BA8;
+  transform: rotate(45deg);
+}
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(10px); }
+}
+
+/* ===== LOGO ===== */
+.hero-logo {
+  width: 120px; height: 120px; margin-bottom: 32px;
+  border-radius: 50%;
+  overflow: hidden;
+}
+.hero-logo img {
+  width: 100%; height: 100%; object-fit: cover;
+}
+.hero-logo-fallback {
+  width: 120px; height: 120px; margin-bottom: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0A7E8C, #C9A84C);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 56px; color: #fff;
+}
+
+/* ===== TEAM ===== */
+.team {
+  display: flex; gap: 32px; justify-content: center;
+  flex-wrap: wrap; margin-top: 40px;
+}
+.team-member {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 16px; color: #8CA0BE;
+  text-align: center;
+}
+.team-member strong { color: #C9A84C; display: block; font-size: 18px; }
+
+/* ===== CLOSING WHEAT ===== */
+.closing-wheat {
+  font-size: 100px;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: opacity 1.5s ease, transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.closing-wheat.visible {
+  opacity: 1;
+  transform: scale(1);
+}
+.closing-tagline {
+  font-family: Georgia, serif;
+  font-size: 22px; font-style: italic;
+  color: #C9A84C; margin-top: 24px;
+  opacity: 0; transition: opacity 1.2s ease 0.5s;
+}
+.closing-tagline.visible { opacity: 1; }
+
+/* ===== SPACER ===== */
+.spacer { height: 80px; }
+
+/* ===== CHAPTER NUMBER ===== */
+.chapter-num {
+  font-family: Calibri, Arial, sans-serif;
+  font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+  color: #A0AEC0; margin-bottom: 12px; text-align: center;
+}
+.dark .chapter-num { color: #6B83A0; }
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 800px) {
+  .chapter { padding: 60px 24px; }
+  .narrative { font-size: 18px; }
+  .kpi-row { gap: 24px; }
+  .clusters { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Progress Bar -->
+<div id="progress"></div>
+
+<!-- ============================================ -->
+<!-- CHAPTER 1: THE PROMISE (Hero) -->
+<!-- ============================================ -->
+<section class="chapter dark" id="ch1" style="min-height: 100vh;">
+  <div class="hero-logo">
+    <img src="../../../brand/threshing_hedge_logo.png" alt="Threshing Hedge"
+         onerror="this.parentElement.outerHTML='<div class=\'hero-logo-fallback\'>&#127806;</div>'">
+  </div>
+  <h1 class="hero-title">THRESHING HEDGE</h1>
+  <p class="subtitle">We harvest alpha and discard the beta.</p>
+  <p class="mandate">A Multi-Asset Market Neutral Fund</p>
+  <div class="scroll-hint">
+    <span>Scroll to begin</span>
+    <div class="scroll-arrow"></div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- CHAPTER 2: THE PROBLEM WE SOLVE -->
+<!-- ============================================ -->
+<section class="chapter fade-in" id="ch2">
+  <div class="chapter-num">Chapter I</div>
+  <h2 class="chapter-title">The Problem We Solve</h2>
+  <div class="narrative">
+    <p>If you run a university endowment with a 5% spending rule, you face a cruel arithmetic. A single year of &minus;30% equity returns doesn't just hurt&mdash;it erases six years of spending capacity. The standard answer has been "60/40." But when equity-bond correlations flipped positive in 2022, that answer stopped working.</p>
+    <p>Our clients need something different: returns that don't care whether the market goes up or down. That's not a marketing slogan&mdash;it's a mathematical constraint. Beta must be zero. Alpha must be positive. Everything we do flows from those two requirements.</p>
+  </div>
+  <div class="gauge-container">
+    <div class="gauge">
+      <div class="gauge-bg">
+        <div class="gauge-mask"></div>
+        <div class="gauge-needle" id="betaNeedle"></div>
+        <div class="gauge-dot"></div>
+      </div>
+    </div>
+    <div class="gauge-labels">
+      <span>&minus;1.0</span>
+      <span>0</span>
+      <span>+1.0</span>
+    </div>
+    <div class="gauge-value" id="betaValue">0.13</div>
+    <div class="kpi-label">Portfolio Beta</div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- CHAPTER 3: HOW WE THINK ABOUT MARKETS -->
+<!-- ============================================ -->
+<section class="chapter fade-in" id="ch3">
+  <div class="chapter-num">Chapter II</div>
+  <h2 class="chapter-title">How We Think About Markets</h2>
+  <div class="narrative">
+    <p>We don't predict where markets are going. We identify themes where the market has priced two related assets differently, and we buy the cheap one and sell the expensive one. The market can go wherever it wants&mdash;we profit from the gap closing.</p>
+    <p>We call these "thematic baskets." Each basket is designed to be market-neutral on its own. If European defense spending is rising, we don't just buy defense stocks&mdash;we buy European defense ETFs and short Airbus, capturing the rotation without the direction.</p>
+  </div>
+
+  <div class="pair-diagram">
+    <div class="pair-visual">
+      <div class="pair-box pair-long">EUAD<br><small style="font-weight:400;font-size:13px;">Long EU Defense</small></div>
+      <div class="pair-arrow">&harr;</div>
+      <div class="pair-box pair-short">EADSF<br><small style="font-weight:400;font-size:13px;">Short Airbus</small></div>
+    </div>
+    <div class="pair-scenarios">
+      <div class="scenario">
+        <span class="scenario-icon">&#x2197;</span>
+        <span><strong>Market rises:</strong> Both go up. Spread holds. Net P&L &asymp; 0.</span>
+      </div>
+      <div class="scenario">
+        <span class="scenario-icon">&#x2198;</span>
+        <span><strong>Market falls:</strong> Both go down. Spread holds. Net P&L &asymp; 0.</span>
+      </div>
+      <div class="scenario">
+        <span class="scenario-icon">&#x2714;</span>
+        <span><strong>Thesis plays out:</strong> Defense outperforms Airbus. Spread widens. We profit.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- CHAPTER 4: WHAT WE BUILT -->
+<!-- ============================================ -->
+<section class="chapter fade-in" id="ch4">
+  <div class="chapter-num">Chapter III</div>
+  <h2 class="chapter-title">What We Built</h2>
+  <div class="narrative">
+    <p>Over six weeks, we deployed capital in three waves across twelve thematic baskets spanning five asset classes. Each cluster below captures a specific market thesis&mdash;and each is designed to be market-neutral on its own.</p>
+  </div>
+
+  <div class="clusters" id="clusterGrid">
+    <div class="cluster-card">
+      <div class="cluster-icon">&#x26A1;</div>
+      <div class="cluster-name">Technology & Innovation</div>
+      <div class="cluster-tickers">DELL, HPE, HPQ, SOXQ, ASML, BILL, G</div>
+      <div class="cluster-thesis">AI infrastructure buildout favors hardware incumbents over high-multiple challengers.</div>
+    </div>
+    <div class="cluster-card">
+      <div class="cluster-icon">&#x2764;</div>
+      <div class="cluster-name">Consumer & Health</div>
+      <div class="cluster-tickers">LLY, AMGN, ELF, INMD, BBWI, WW</div>
+      <div class="cluster-thesis">GLP-1 adoption reshuffles winners and losers across beauty, wellness, and pharma.</div>
+    </div>
+    <div class="cluster-card">
+      <div class="cluster-icon">&#x1F6E1;</div>
+      <div class="cluster-name">Defense & Geopolitics</div>
+      <div class="cluster-tickers">EUAD, EADSF, BA, Hanwha, Kawasaki, Mitsubishi, EWY, EWJ</div>
+      <div class="cluster-thesis">European rearmament + Asian defense modernization create pair trades against legacy primes.</div>
+    </div>
+    <div class="cluster-card">
+      <div class="cluster-icon">&#x1F9EA;</div>
+      <div class="cluster-name">Resources & Energy</div>
+      <div class="cluster-tickers">AIQUY, APD, LIN, XOM, BASFY, EVKIY, SLVYY, Brent, HO</div>
+      <div class="cluster-thesis">Industrial gas duopoly provides structural margin expansion; energy pairs capture crack spreads.</div>
+    </div>
+    <div class="cluster-card">
+      <div class="cluster-icon">&#x1F310;</div>
+      <div class="cluster-name">Macro & Markets</div>
+      <div class="cluster-tickers">TIP, TLT, INDA, VNM, VWO, BX, OBDC, EUR/NOK</div>
+      <div class="cluster-thesis">Real rate normalization and EM divergence create cross-asset relative value.</div>
+    </div>
+    <div class="cluster-card">
+      <div class="cluster-icon">&#x1F69B;</div>
+      <div class="cluster-name">Logistics</div>
+      <div class="cluster-tickers">FDX, UPS, XPEV, TSLA, ROBO, XLI</div>
+      <div class="cluster-thesis">Logistics rationalization favors incumbents over EV-driven disruption narratives.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- CHAPTER 5: THE DISCIPLINE -->
+<!-- ============================================ -->
+<section class="chapter fade-in" id="ch5">
+  <div class="chapter-num">Chapter IV</div>
+  <h2 class="chapter-title">The Discipline</h2>
+  <div class="narrative">
+    <p>A market-neutral fund without discipline is just a leveraged bet with extra steps. Our Investment Committee meets weekly. Every position requires majority approval. We auto-rebalance when any position moves &pm;20%. We keep each basket's net exposure within 1% of target.</p>
+    <p>The hardest rule to follow: when a pair moves against you, the instinct is to wait. Our process says rebalance. This saved us twice.</p>
+  </div>
+
+  <div class="guardrails">
+    <div class="guardrail">
+      <div class="guardrail-value">&lt;10%</div>
+      <div class="guardrail-label">Net Exposure</div>
+    </div>
+    <div class="guardrail">
+      <div class="guardrail-value">&lt;1%</div>
+      <div class="guardrail-label">Theme Net</div>
+    </div>
+    <div class="guardrail">
+      <div class="guardrail-value">+20 / &minus;15%</div>
+      <div class="guardrail-label">P&L Triggers</div>
+    </div>
+    <div class="guardrail">
+      <div class="guardrail-value">&le;2x</div>
+      <div class="guardrail-label">Gross Leverage</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- CHAPTER 6: THE NUMBERS -->
+<!-- ============================================ -->
+<section class="chapter dark fade-in" id="ch6">
+  <div class="chapter-num">Chapter V</div>
+  <h2 class="chapter-title">The Numbers</h2>
+  <div class="narrative">
+    <p>In 22 trading days, the portfolio returned +1.30% against a SOFR benchmark of +0.07%. The Sharpe ratio of 1.93 is strong, but we're honest: 22 days is not a track record. It's a proof of concept.</p>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-value" data-target="1.30" data-suffix="%" data-decimals="2">0</div>
+      <div class="kpi-label">ITD Return</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value gold" data-target="1.93" data-decimals="2">0</div>
+      <div class="kpi-label">Sharpe Ratio</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value" data-target="0.13" data-decimals="2">0</div>
+      <div class="kpi-label">Beta</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value" data-target="-1.20" data-suffix="%" data-decimals="2" data-negative="true">0</div>
+      <div class="kpi-label">Max Drawdown</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value" data-target="2.0" data-suffix="%" data-decimals="1">0</div>
+      <div class="kpi-label">Net / Gross</div>
+    </div>
+  </div>
+
+  <div class="chart-container">
+    <img src="../charts/performance_vs_benchmark.png" alt="Performance vs Benchmark">
+  </div>
+  <p class="chart-caption" style="color:#8CA0BE;">Cumulative returns: Threshing Hedge vs. S&P 500 vs. SOFR</p>
+
+  <div class="spacer"></div>
+
+  <div class="chart-container">
+    <img src="../charts/fan_chart.png" alt="Fan Chart — Market Neutrality">
+  </div>
+  <div class="narrative" style="margin-top:32px;">
+    <p>The fan chart above sorts every trading day by S&amp;P performance. Notice that our teal bars show no pattern relative to the gray bars. On days when the S&amp;P fell, we were just as likely to be up as down. That's what market neutrality looks like in practice.</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- CHAPTER 7: WHERE IT HURT -->
+<!-- ============================================ -->
+<section class="chapter fade-in" id="ch7">
+  <div class="chapter-num">Chapter VI</div>
+  <h2 class="chapter-title">Where It Hurt</h2>
+  <div class="narrative">
+    <p>The short book cost us $35,000. That's the honest number. TSLA, HPQ, and BBWI&mdash;three shorts that moved against us during a sharp risk-on rally in April. The long book made $12,000. Net: we're up, but barely.</p>
+    <p>The lesson: pairs trading in a momentum-driven market requires tighter rebalancing than we initially planned. We adjusted&mdash;moving from weekly to real-time threshold monitoring. Our Alpha Dashboard now flags any position that drifts beyond targets.</p>
+  </div>
+
+  <div class="chart-container">
+    <img src="../charts/pnl_by_theme.png" alt="P&L by Theme">
+  </div>
+  <p class="chart-caption">P&L attribution by thematic basket</p>
+
+  <div class="pull-quote">
+    "The best risk management isn't avoiding losses. It's knowing exactly where they came from."
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- CHAPTER 8: HOW WE MEASURE RISK -->
+<!-- ============================================ -->
+<section class="chapter fade-in" id="ch8">
+  <div class="chapter-num">Chapter VII</div>
+  <h2 class="chapter-title">How We Measure Risk</h2>
+  <div class="narrative">
+    <p>Value at Risk tells you the loss you shouldn't exceed on 95% of days. Ours is $5,500&mdash;about half a percent. But VaR is a fair-weather metric. What we really want to know is: what happens when correlations spike?</p>
+    <p>We stress-tested against five historical crises. The worst case&mdash;a GFC-level event with correlations inflated 50%&mdash;would cost us an estimated 6.7%. Painful, but survivable. A long-only portfolio would lose 56%.</p>
+  </div>
+
+  <div class="chart-container">
+    <img src="../charts/stress_test_chart.png" alt="Stress Test Results">
+  </div>
+  <p class="chart-caption">Estimated portfolio loss under historical crisis scenarios</p>
+
+  <div class="narrative" style="margin-top:40px;">
+    <p>We also monitor risks that don't show up in a VaR calculation: headline risk from geopolitical events that move our defense positions overnight, gap risk from earnings surprises in illiquid names, and personnel risk&mdash;we're four people, and if one leaves, the process breaks.</p>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- CHAPTER 9: THE INFRASTRUCTURE -->
+<!-- ============================================ -->
+<section class="chapter fade-in" id="ch9" style="background: linear-gradient(180deg, #FAFBFC, #EDF2F7);">
+  <div class="chapter-num">Chapter VIII</div>
+  <h2 class="chapter-title">The Infrastructure</h2>
+  <div class="narrative">
+    <p>We built something unusual for a class project: a real-time portfolio analytics platform. The Alpha Dashboard ingests our StockTrak positions, runs factor models, computes VaR, and monitors exposure&mdash;all automatically.</p>
+    <p>This isn't a nice-to-have. A market-neutral fund that checks its beta once a week is flying blind. Our dashboard shows beta-adjusted net exposure in real time. When it drifts past 10%, we rebalance.</p>
+  </div>
+
+  <div class="pull-quote">"You can't manage what you don't measure in real time."</div>
+
+  <div class="chart-container" style="box-shadow: 0 8px 40px rgba(0,0,0,0.12); border: 1px solid #E2E8F0;">
+    <img src="../charts/drawdown_chart.png" alt="Drawdown Analysis">
+  </div>
+  <p class="chart-caption">Real-time drawdown monitoring from the Alpha Dashboard</p>
+</section>
+
+<!-- ============================================ -->
+<!-- CHAPTER 10: WHAT WE'D DO DIFFERENTLY -->
+<!-- ============================================ -->
+<section class="chapter fade-in" id="ch10">
+  <div class="chapter-num">Chapter IX</div>
+  <h2 class="chapter-title">What We'd Do Differently</h2>
+  <div class="narrative">
+    <p>Six weeks is not enough time. With six months, we would have built a statistically meaningful track record. With a year, we could test whether our alpha survives transaction costs at scale.</p>
+    <p>Three specific improvements for the next quarter:</p>
+  </div>
+
+  <ol class="improvements">
+    <li><strong>Options overlay</strong> for tail risk protection&mdash;buying cheap puts on correlated indices to hedge the scenarios VaR doesn't capture.</li>
+    <li><strong>Automated rebalancing triggers</strong>&mdash;currently manual, should fire automatically when any position breaches drift thresholds.</li>
+    <li><strong>Factor-based signal generation</strong> to complement fundamental research&mdash;using momentum, value, and quality factors to time pair entries.</li>
+  </ol>
+</section>
+
+<!-- ============================================ -->
+<!-- CHAPTER 11: THE BOTTOM LINE -->
+<!-- ============================================ -->
+<section class="chapter dark fade-in" id="ch11" style="min-height: 100vh;">
+  <div class="chapter-num">Chapter X</div>
+  <h2 class="chapter-title">The Bottom Line</h2>
+  <div class="narrative">
+    <p>Threshing Hedge demonstrated that a disciplined, technology-enabled market-neutral process can generate positive returns independent of market direction. Our beta is near zero. Our Sharpe is 1.93. Our process is systematic and documented.</p>
+    <p>We don't claim to have proven alpha in 22 trading days. What we've proven is that the process works&mdash;that it's possible to build a genuine market-neutral portfolio across five asset classes with a four-person team, a StockTrak account, and a clear investment philosophy.</p>
+  </div>
+
+  <div class="closing-wheat" id="closingWheat">&#127806;</div>
+  <div class="closing-tagline" id="closingTagline">The grain has been separated from the chaff.<br>What remains is alpha.</div>
+
+  <div style="height:48px;"></div>
+
+  <p style="font-family:Georgia;font-size:28px;color:#C9A84C;letter-spacing:4px;font-weight:700;">THRESHING HEDGE</p>
+  <p class="mandate" style="margin-top:8px;">Multi-Asset Market Neutral Fund &middot; Spring 2026</p>
+
+  <div class="team">
+    <div class="team-member"><strong>Team Alpha</strong>Yale School of Management &middot; MGT 845</div>
+  </div>
+</section>
+
+<!-- ============================================ -->
+<!-- JAVASCRIPT -->
+<!-- ============================================ -->
+<script>
+(function() {
+  'use strict';
+
+  // ---- PROGRESS BAR ----
+  const progressBar = document.getElementById('progress');
+  function updateProgress() {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
+    progressBar.style.width = pct + '%';
+  }
+  window.addEventListener('scroll', updateProgress, { passive: true });
+
+  // ---- INTERSECTION OBSERVER: CHAPTERS ----
+  const fadeEls = document.querySelectorAll('.chapter.fade-in');
+  const fadeObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.12 });
+  fadeEls.forEach(el => fadeObs.observe(el));
+
+  // ---- INTERSECTION OBSERVER: CLUSTER CARDS ----
+  const cards = document.querySelectorAll('.cluster-card');
+  const cardObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.2 });
+  cards.forEach(c => cardObs.observe(c));
+
+  // ---- ANIMATED COUNTERS ----
+  function animateCounter(el, target, duration, decimals, suffix) {
+    const isNeg = target < 0;
+    const absTarget = Math.abs(target);
+    let start = null;
+    function step(ts) {
+      if (!start) start = ts;
+      const progress = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const val = absTarget * eased;
+      const formatted = (isNeg ? '-' : '') + val.toFixed(decimals) + (suffix || '');
+      el.textContent = formatted;
+      if (progress < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  const kpiEls = document.querySelectorAll('.kpi-value[data-target]');
+  const kpiObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !entry.target.dataset.animated) {
+        entry.target.dataset.animated = '1';
+        const target = parseFloat(entry.target.dataset.target);
+        const decimals = parseInt(entry.target.dataset.decimals) || 2;
+        const suffix = entry.target.dataset.suffix || '';
+        animateCounter(entry.target, target, 1800, decimals, suffix);
+      }
+    });
+  }, { threshold: 0.5 });
+  kpiEls.forEach(el => kpiObs.observe(el));
+
+  // ---- BETA GAUGE ANIMATION ----
+  const needle = document.getElementById('betaNeedle');
+  const gaugeObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting && !needle.dataset.animated) {
+        needle.dataset.animated = '1';
+        // Beta 0.13 on scale -1 to 1: maps to angle
+        // -90deg = -1.0, 0deg = 0.0, +90deg = +1.0
+        // 0.13 => 0.13 * 90 = 11.7deg
+        // Needle starts at -82deg (near -1), animate to ~11.7deg (0.13)
+        const betaVal = 0.13;
+        const angle = betaVal * 90; // ~11.7
+        needle.style.transform = 'translateX(-50%) rotate(' + angle + 'deg)';
+      }
+    });
+  }, { threshold: 0.5 });
+  gaugeObs.observe(document.getElementById('ch2'));
+
+  // ---- CLOSING ELEMENTS ----
+  const wheat = document.getElementById('closingWheat');
+  const tagline = document.getElementById('closingTagline');
+  const closingObs = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        wheat.classList.add('visible');
+        tagline.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.3 });
+  closingObs.observe(document.getElementById('ch11'));
+
+})();
+</script>
+
+</body>
+</html>
